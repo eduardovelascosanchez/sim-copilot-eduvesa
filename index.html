@@ -299,19 +299,66 @@ const scenarios = {
       id:"pals-brady",
       name:"Bradicardia pediátrica con mala perfusión",
       patient:"Niño de 2 años",
-      summary:"Paciente con compromiso respiratorio, bradicardia progresiva y signos de mala perfusión. El equipo debe reconocer la causa, intervenir y reevaluar.",
+      summary:"Compromiso respiratorio, bradicardia progresiva y mala perfusión. El equipo debe priorizar oxigenación, ventilación, RCP si corresponde y reevaluación.",
       vitals:{hr:58,spo2:78,bp:"62/35",rr:10},
-      expected:["Evaluar ABC","Administrar oxígeno","Ventilar con bolsa-mascarilla","Iniciar compresiones","Administrar adrenalina","Reevaluar al paciente"]
+      expected:["Evaluar ABC","Administrar oxígeno","Ventilar con bolsa-mascarilla","Iniciar compresiones","Administrar adrenalina","Reevaluar al paciente"],
+      outcome:{hr:105,spo2:96,bp:"86/50",rr:24}
+    },
+    {
+      id:"pals-tachy",
+      name:"Taquicardia pediátrica inestable",
+      patient:"Escolar de 8 años",
+      summary:"Taquicardia de inicio súbito con palidez, pulsos débiles, hipotensión y alteración del estado mental. El equipo debe identificar inestabilidad y tratarla.",
+      vitals:{hr:220,spo2:92,bp:"68/38",rr:32},
+      expected:["Evaluar ABC","Administrar oxígeno","Colocar monitor","Obtener acceso vascular","Realizar cardioversión sincronizada","Reevaluar al paciente"],
+      outcome:{hr:118,spo2:98,bp:"96/58",rr:22}
+    },
+    {
+      id:"pals-sepsis",
+      name:"Choque séptico pediátrico",
+      patient:"Niña de 5 años",
+      summary:"Fiebre, taquicardia, extremidades frías, llenado capilar prolongado e hipotensión. El equipo debe reconocer choque y comenzar reanimación inicial.",
+      vitals:{hr:168,spo2:94,bp:"70/40",rr:38},
+      expected:["Evaluar ABC","Administrar oxígeno","Obtener acceso vascular","Administrar bolo de líquidos","Administrar antibiótico","Reevaluar al paciente"],
+      outcome:{hr:128,spo2:98,bp:"90/54",rr:28}
+    },
+    {
+      id:"pals-respiratory",
+      name:"Insuficiencia respiratoria aguda",
+      patient:"Lactante de 10 meses",
+      summary:"Dificultad respiratoria grave, hipoxemia, agotamiento y disminución del estado de alerta. El equipo debe optimizar oxigenación y ventilación.",
+      vitals:{hr:176,spo2:72,bp:"76/44",rr:54},
+      expected:["Evaluar ABC","Administrar oxígeno","Aspirar vía aérea","Ventilar con bolsa-mascarilla","Preparar vía aérea avanzada","Reevaluar al paciente"],
+      outcome:{hr:132,spo2:96,bp:"84/48",rr:30}
+    },
+    {
+      id:"pals-arrest",
+      name:"Paro cardiorrespiratorio pediátrico",
+      patient:"Niño de 6 años",
+      summary:"Paciente inconsciente, sin respiración efectiva y sin pulso palpable. El equipo debe iniciar RCP de alta calidad y trabajar de manera organizada.",
+      vitals:{hr:0,spo2:0,bp:"—",rr:0},
+      expected:["Evaluar respuesta y pulso","Iniciar compresiones","Ventilar con bolsa-mascarilla","Colocar monitor","Administrar adrenalina","Reevaluar ritmo y pulso"],
+      outcome:{hr:96,spo2:94,bp:"82/46",rr:18}
     }
   ],
   NRP: [
     {
-      id:"nrp-apnea",
-      name:"Recién nacido con apnea y frecuencia cardiaca baja",
+      id:"nrp-basic",
+      name:"Reanimación neonatal básica",
       patient:"Recién nacido de término",
-      summary:"Recién nacido sin respiración efectiva y con frecuencia cardiaca menor de 100 lpm. El equipo debe realizar pasos iniciales, ventilación y reevaluación.",
-      vitals:{hr:70,spo2:55,bp:"—",rr:0},
-      expected:["Realizar pasos iniciales","Iniciar ventilación a presión positiva","Verificar movimiento torácico","Corregir ventilación","Reevaluar frecuencia cardiaca","Iniciar compresiones"]
+      summary:"Recién nacido con respiración ineficaz y frecuencia cardiaca menor de 100 lpm. El equipo debe realizar pasos iniciales, VPP efectiva y reevaluación.",
+      vitals:{hr:80,spo2:58,bp:"—",rr:6},
+      expected:["Realizar pasos iniciales","Iniciar ventilación a presión positiva","Verificar movimiento torácico","Corregir ventilación","Reevaluar frecuencia cardiaca","Ajustar oxígeno según objetivos"],
+      outcome:{hr:135,spo2:90,bp:"—",rr:40}
+    },
+    {
+      id:"nrp-advanced",
+      name:"Reanimación neonatal avanzada",
+      patient:"Recién nacido de 35 semanas",
+      summary:"Apnea persistente y frecuencia cardiaca menor de 60 lpm pese a ventilación inicial. El equipo debe asegurar ventilación eficaz, iniciar compresiones y administrar medicación si está indicada.",
+      vitals:{hr:48,spo2:42,bp:"—",rr:0},
+      expected:["Realizar pasos iniciales","Iniciar ventilación a presión positiva","Corregir ventilación","Asegurar vía aérea avanzada","Iniciar compresiones","Administrar adrenalina","Reevaluar frecuencia cardiaca"],
+      outcome:{hr:122,spo2:88,bp:"—",rr:34}
     }
   ]
 };
@@ -319,19 +366,31 @@ const scenarios = {
 const actionCatalog = {
   PALS:[
     ["Evaluar ABC","Valoración primaria"],
+    ["Evaluar respuesta y pulso","Confirmar paro"],
     ["Administrar oxígeno","Oxígeno suplementario"],
+    ["Aspirar vía aérea","Despejar secreciones"],
     ["Ventilar con bolsa-mascarilla","Ventilación asistida"],
+    ["Preparar vía aérea avanzada","Intubación o dispositivo avanzado"],
     ["Iniciar compresiones","RCP de alta calidad"],
+    ["Colocar monitor","Monitor/desfibrilador"],
+    ["Obtener acceso vascular","Acceso IV o IO"],
+    ["Administrar bolo de líquidos","Reanimación con cristaloide"],
+    ["Administrar antibiótico","Tratamiento temprano"],
     ["Administrar adrenalina","Medicamento simulado"],
+    ["Realizar cardioversión sincronizada","Tratamiento de taquicardia inestable"],
+    ["Reevaluar ritmo y pulso","Análisis posterior al ciclo"],
     ["Reevaluar al paciente","Verificar respuesta"]
   ],
   NRP:[
-    ["Realizar pasos iniciales","Calor, posición, estimulación"],
+    ["Realizar pasos iniciales","Calor, posición, secado y estimulación"],
     ["Iniciar ventilación a presión positiva","VPP"],
     ["Verificar movimiento torácico","Eficacia de ventilación"],
     ["Corregir ventilación","Pasos correctivos"],
-    ["Reevaluar frecuencia cardiaca","Respuesta a VPP"],
-    ["Iniciar compresiones","Coordinación 3:1"]
+    ["Asegurar vía aérea avanzada","Tubo endotraqueal o mascarilla laríngea"],
+    ["Iniciar compresiones","Coordinación 3:1"],
+    ["Administrar adrenalina","Medicamento simulado"],
+    ["Reevaluar frecuencia cardiaca","Respuesta a intervenciones"],
+    ["Ajustar oxígeno según objetivos","Titulación por minuto de vida"]
   ]
 };
 
@@ -413,23 +472,60 @@ function registerAction(action){
   const s = currentScenario();
   const expected = s.expected.includes(action);
   const firstTime = !state.completed.has(action);
+
   if(expected && firstTime){
     state.score += 10;
     state.completed.add(action);
+  } else if(!expected && firstTime){
+    state.score = Math.max(0, state.score - 2);
   }
+
   state.events.push({time:formatTime(state.seconds),action,expected});
   updateLog();
+  applyClinicalResponse(action, s);
+}
 
+function applyClinicalResponse(action, scenario){
+  const id = scenario.id;
+
+  if(action.includes("oxígeno") || action.includes("Oxígeno")){
+    improveVitals(0,6,0);
+  }
   if(action.includes("Ventilar") || action.includes("ventilación")){
-    improveVitals(15,8,3);
-  } else if(action.includes("oxígeno")){
-    improveVitals(0,5,0);
-  } else if(action.includes("compresiones")){
-    improveVitals(12,3,0);
-  } else if(action.includes("adrenalina")){
-    improveVitals(25,2,0);
-  } else if(action.includes("Reevaluar")){
+    improveVitals(id === "pals-brady" ? 18 : 10,12,4);
+  }
+  if(action.includes("compresiones")){
+    improveVitals(id.includes("arrest") || id.includes("advanced") ? 25 : 15,5,0);
+  }
+  if(action.includes("adrenalina")){
+    improveVitals(id.includes("arrest") || id.includes("advanced") ? 35 : 20,3,0);
+  }
+  if(action.includes("bolo de líquidos")){
+    improveVitals(-12,2,-2);
+    $("bp").textContent = "82/48";
+  }
+  if(action.includes("antibiótico")){
+    addSystemEvent("Antibiótico administrado de forma simulada.");
+  }
+  if(action.includes("cardioversión")){
+    setVitals(scenario.outcome);
+    $("patientState").textContent = "Ritmo convertido";
+  }
+  if(action.includes("vía aérea avanzada")){
+    improveVitals(10,10,5);
+  }
+  if(action.includes("Aspirar")){
+    improveVitals(-5,5,-3);
+  }
+  if(action.includes("Reevaluar")){
     addSystemEvent("Reevaluación clínica registrada.");
+  }
+
+  const completed = scenario.expected.filter(x => state.completed.has(x)).length;
+  if(completed === scenario.expected.length){
+    setVitals(scenario.outcome);
+    $("patientState").textContent = "Respuesta favorable";
+    addSystemEvent("Se alcanzaron los objetivos principales del escenario.");
   }
 }
 
