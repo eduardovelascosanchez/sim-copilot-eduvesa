@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimCopilot EDUVESA</title>
+  <style>
+    :root{
+      --bg:#07111f;--panel:#101d31;--panel2:#16263f;--text:#f2f6fb;
+      --muted:#9fb0c5;--line:#2b3f5d;--accent:#46d7c3;--danger:#ff5f7d;
+      --warning:#ffd166;--success:#58df8d;--info:#68a9ff;--radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+      color:var(--text);background:
+      radial-gradient(circle at top right,rgba(70,215,195,.12),transparent 30%),
+      radial-gradient(circle at bottom left,rgba(104,169,255,.10),transparent 30%),var(--bg);
+      min-height:100vh
+    }
+    button,input,select,textarea{font:inherit}
+    .hidden{display:none!important}
+    .screen{min-height:100vh}
+    .login{
+      display:grid;place-items:center;padding:24px
+    }
+    .login-card{
+      width:min(460px,100%);background:rgba(16,29,49,.96);border:1px solid var(--line);
+      border-radius:24px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.35)
+    }
+    h1,h2,h3,p{margin-top:0}
+    .subtitle{color:var(--muted);line-height:1.5}
+    label{display:block;color:var(--muted);font-size:.86rem;margin:12px 0 6px}
+    input,select,textarea{
+      width:100%;padding:12px 13px;border-radius:12px;border:1px solid var(--line);
+      background:#091525;color:var(--text);outline:none
+    }
+    input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+    .btn{
+      border:1px solid var(--line);background:var(--panel2);color:var(--text);
+      padding:11px 15px;border-radius:12px;font-weight:800;cursor:pointer
+    }
+    .btn:hover{filter:brightness(1.08)}
+    .btn.primary{background:var(--accent);color:#04211c;border-color:transparent}
+    .btn.danger{background:var(--danger);border-color:transparent}
+    .btn.warning{background:var(--warning);color:#332500;border-color:transparent}
+    .btn.success{background:var(--success);color:#052313;border-color:transparent}
+    .btn.full{width:100%;margin-top:16px}
+    .note{font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:14px}
+    .app{max-width:1500px;margin:auto;padding:16px}
+    .topbar{
+      display:flex;justify-content:space-between;gap:12px;align-items:center;
+      background:rgba(16,29,49,.92);border:1px solid var(--line);border-radius:18px;
+      padding:14px 16px;position:sticky;top:8px;z-index:20;backdrop-filter:blur(12px)
+    }
+    .topbar h1{font-size:1.2rem;margin:0}
+    .topbar small{color:var(--muted)}
+    .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .grid{display:grid;grid-template-columns:1.05fr 1fr .85fr;gap:16px;margin-top:16px}
+    .card{
+      background:linear-gradient(180deg,rgba(22,38,63,.97),rgba(13,24,41,.97));
+      border:1px solid var(--line);border-radius:var(--radius);padding:16px;
+      box-shadow:0 20px 50px rgba(0,0,0,.25)
+    }
+    .section-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .badge{font-size:.76rem;font-weight:800;padding:5px 9px;border-radius:999px;background:#203654;color:#d9e8fb}
+    .setup{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .scenario-box{
+      margin-top:12px;padding:13px;border-radius:13px;background:#0a1627;
+      border:1px dashed #3b5578;line-height:1.5;color:#dce8f6
+    }
+    .timer-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0}
+    .timer{
+      font-size:2.4rem;font-weight:900;font-variant-numeric:tabular-nums;
+      background:#07111e;border:1px solid #263a58;border-radius:14px;padding:10px 16px
+    }
+    .status{font-weight:900}
+    .status.ready{color:var(--warning)}.status.running{color:var(--success)}
+    .status.paused{color:var(--warning)}.status.done{color:var(--danger)}
+    .button-row{display:flex;gap:8px;flex-wrap:wrap}
+    .actions{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+    .action{
+      text-align:left;min-height:70px;background:#142640;border:1px solid #345073;
+      color:white;border-radius:13px;padding:11px;font-weight:800;cursor:pointer
+    }
+    .action span{display:block;color:var(--muted);font-size:.76rem;font-weight:500;margin-top:4px}
+    .monitor{
+      background:#02070d;border:1px solid #22344e;border-radius:16px;padding:14px;min-height:430px
+    }
+    .monitor-head{display:flex;justify-content:space-between;color:#9fb0c5;font-size:.78rem;margin-bottom:8px}
+    .wave{height:105px;border-top:1px solid #142235;border-bottom:1px solid #142235;overflow:hidden}
+    .wave svg{width:100%;height:100%}
+    .wave path{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+    .ecg path{stroke:#55ef9f}.spo path{stroke:#55cfff}.cap path{stroke:#ffd166}
+    .vitals{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+    .vital{
+      background:#07111e;border:1px solid #1d304a;border-radius:13px;padding:10px;
+      display:flex;justify-content:space-between;align-items:end
+    }
+    .vital small{color:var(--muted)} .vital strong{font-size:2rem}
+    .hr strong{color:#55ef9f}.sp strong{color:#55cfff}.bp strong{color:#ffd166}.rr strong{color:#e7aaff}
+    .timeline{max-height:420px;overflow:auto;background:#081423;border:1px solid #20334e;border-radius:14px;padding:8px}
+    .log{padding:9px;border-bottom:1px solid #1c2d45}
+    .log:last-child{border-bottom:none}.log time{font-size:.74rem;color:var(--accent);font-weight:900}
+    .log p{margin:4px 0 0;font-size:.88rem;color:#d8e5f5}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+    .metric{background:#07111e;border:1px solid #20334e;border-radius:12px;padding:10px;text-align:center}
+    .metric strong{display:block;font-size:1.25rem}.metric small{color:var(--muted)}
+    .modal{
+      position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;
+      justify-content:center;padding:18px;z-index:100
+    }
+    .modal.visible{display:flex}
+    .modal-card{
+      width:min(760px,100%);max-height:90vh;overflow:auto;background:var(--panel);
+      border:1px solid var(--line);border-radius:20px;padding:20px
+    }
+    .result{
+      padding:14px;border-radius:13px;text-align:center;font-weight:900;margin:12px 0;
+      background:#0a1728;border:1px solid #2b4567
+    }
+    .debrief{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    ul{line-height:1.6}
+    @media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}.log-card{grid-column:1/-1}}
+    @media(max-width:760px){
+      .grid{grid-template-columns:1fr}.log-card{grid-column:auto}.setup,.debrief{grid-template-columns:1fr}
+      .topbar{align-items:flex-start;flex-direction:column}.actions{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<section id="loginScreen" class="screen login">
+  <div class="login-card">
+    <h1>SimCopilot EDUVESA</h1>
+    <p class="subtitle">Acceso local para instructores. Los datos se guardan únicamente en este navegador.</p>
+
+    <label for="loginName">Nombre del instructor</label>
+    <input id="loginName" placeholder="Ej. Dr. Eduardo Velasco">
+
+    <label for="loginPin">PIN local</label>
+    <input id="loginPin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN de 4 a 6 dígitos">
+
+    <button id="loginBtn" class="btn primary full">Ingresar</button>
+    <p class="note">Primera vez: escribe tu nombre y crea cualquier PIN de 4 a 6 dígitos. El acceso quedará guardado localmente.</p>
+  </div>
+</section>
+
+<section id="appScreen" class="screen hidden">
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <h1>SimCopilot EDUVESA</h1>
+        <small id="welcomeText">Instructor</small>
+      </div>
+      <div class="top-actions">
+        <button id="saveBtn" class="btn">Guardar sesión</button>
+        <button id="logoutBtn" class="btn">Cerrar sesión</button>
+        <button id="resetBtn" class="btn danger">Reiniciar</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="section-head">
+          <h2>Escenario</h2>
+          <span id="modeBadge" class="badge">Sin iniciar</span>
+        </div>
+
+        <div class="setup">
+          <div>
+            <label for="program">Programa</label>
+            <select id="program">
+              <option value="PALS">PALS</option>
+              <option value="NRP">NRP</option>
+            </select>
+          </div>
+          <div>
+            <label for="scenario">Caso de prueba</label>
+            <select id="scenario"></select>
+          </div>
+          <div>
+            <label for="teamName">Equipo</label>
+            <input id="teamName" value="Equipo 1">
+          </div>
+          <div>
+            <label for="learnerCount">Participantes</label>
+            <input id="learnerCount" type="number" min="1" max="12" value="4">
+          </div>
+        </div>
+
+        <div id="scenarioBox" class="scenario-box"></div>
+
+        <div class="timer-row">
+          <div>
+            <div id="statusText" class="status ready">LISTO</div>
+            <small style="color:var(--muted)">Tiempo del escenario</small>
+          </div>
+          <div id="timer" class="timer">00:00</div>
+        </div>
+
+        <div class="button-row">
+          <button id="startBtn" class="btn primary">Iniciar</button>
+          <button id="pauseBtn" class="btn warning">Pausar</button>
+          <button id="finishBtn" class="btn danger">Finalizar</button>
+        </div>
+
+        <h3 style="margin-top:18px">Panel de intervenciones</h3>
+        <div id="actions" class="actions"></div>
+
+        <p class="note">
+          Uso exclusivamente educativo. No sustituye manuales vigentes, algoritmos oficiales,
+          juicio clínico ni evaluación de instructores autorizados.
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Monitor</h2>
+          <span id="patientState" class="badge">Preparado</span>
+        </div>
+
+        <div class="monitor">
+          <div class="monitor-head">
+            <span id="patientLabel">Paciente simulado</span>
+            <span>SIM • EDUVESA</span>
+          </div>
+
+          <div class="wave ecg"><svg viewBox="0 0 1000 120" preserveAspectRatio="none"><path id="ecgPath"></path></svg></div>
+          <div class="wave spo"><svg viewBox="0 0 1000 120" preserveAspectRatio="none"><path id="spoPath"></path></svg></div>
+          <div class="wave cap"><svg viewBox="0 0 1000 120" preserveAspectRatio="none"><path id="capPath"></path></svg></div>
+
+          <div class="vitals">
+            <div class="vital hr"><div><small>FC</small><strong id="hr">110</strong></div><small>lpm</small></div>
+            <div class="vital sp"><div><small>SpO₂</small><strong id="spo2">96</strong></div><small>%</small></div>
+            <div class="vital bp"><div><small>PA</small><strong id="bp">90/55</strong></div><small>mmHg</small></div>
+            <div class="vital rr"><div><small>FR</small><strong id="rr">24</strong></div><small>rpm</small></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card log-card">
+        <div class="section-head">
+          <h2>Registro de acciones</h2>
+          <span id="eventCount" class="badge">0 eventos</span>
+        </div>
+        <div id="timeline" class="timeline"></div>
+
+        <div class="metrics">
+          <div class="metric"><strong id="score">0</strong><small>Puntos</small></div>
+          <div class="metric"><strong id="critical">0</strong><small>Críticos</small></div>
+          <div class="metric"><strong id="actionCount">0</strong><small>Acciones</small></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+<div id="resultModal" class="modal">
+  <div class="modal-card">
+    <div class="section-head">
+      <h2>Resultado final</h2>
+      <button id="closeModal" class="btn">Cerrar</button>
+    </div>
+
+    <div id="resultBanner" class="result"></div>
+
+    <div class="debrief">
+      <div>
+        <h3>Resumen</h3>
+        <ul id="resultSummary"></ul>
+      </div>
+      <div>
+        <h3>Debriefing básico</h3>
+        <label for="wentWell">¿Qué se hizo bien?</label>
+        <textarea id="wentWell" placeholder="Comunicación, liderazgo, intervenciones oportunas..."></textarea>
+
+        <label for="improve">¿Qué puede mejorar?</label>
+        <textarea id="improve" placeholder="Priorización, tiempos, técnica, reevaluación..."></textarea>
+
+        <label for="takeaway">Mensaje principal</label>
+        <textarea id="takeaway" placeholder="Aprendizaje clave para el equipo..."></textarea>
+      </div>
+    </div>
+
+    <div class="button-row" style="margin-top:14px">
+      <button id="downloadReport" class="btn success">Descargar reporte</button>
+      <button id="newScenario" class="btn primary">Nuevo escenario</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const scenarios = {
+  PALS: [
+    {
+      id:"pals-brady",
+      name:"Bradicardia pediátrica con mala perfusión",
+      patient:"Niño de 2 años",
+      summary:"Paciente con compromiso respiratorio, bradicardia progresiva y signos de mala perfusión. El equipo debe reconocer la causa, intervenir y reevaluar.",
+      vitals:{hr:58,spo2:78,bp:"62/35",rr:10},
+      expected:["Evaluar ABC","Administrar oxígeno","Ventilar con bolsa-mascarilla","Iniciar compresiones","Administrar adrenalina","Reevaluar al paciente"]
+    }
+  ],
+  NRP: [
+    {
+      id:"nrp-apnea",
+      name:"Recién nacido con apnea y frecuencia cardiaca baja",
+      patient:"Recién nacido de término",
+      summary:"Recién nacido sin respiración efectiva y con frecuencia cardiaca menor de 100 lpm. El equipo debe realizar pasos iniciales, ventilación y reevaluación.",
+      vitals:{hr:70,spo2:55,bp:"—",rr:0},
+      expected:["Realizar pasos iniciales","Iniciar ventilación a presión positiva","Verificar movimiento torácico","Corregir ventilación","Reevaluar frecuencia cardiaca","Iniciar compresiones"]
+    }
+  ]
+};
+
+const actionCatalog = {
+  PALS:[
+    ["Evaluar ABC","Valoración primaria"],
+    ["Administrar oxígeno","Oxígeno suplementario"],
+    ["Ventilar con bolsa-mascarilla","Ventilación asistida"],
+    ["Iniciar compresiones","RCP de alta calidad"],
+    ["Administrar adrenalina","Medicamento simulado"],
+    ["Reevaluar al paciente","Verificar respuesta"]
+  ],
+  NRP:[
+    ["Realizar pasos iniciales","Calor, posición, estimulación"],
+    ["Iniciar ventilación a presión positiva","VPP"],
+    ["Verificar movimiento torácico","Eficacia de ventilación"],
+    ["Corregir ventilación","Pasos correctivos"],
+    ["Reevaluar frecuencia cardiaca","Respuesta a VPP"],
+    ["Iniciar compresiones","Coordinación 3:1"]
+  ]
+};
+
+let state = {
+  instructor:"",
+  running:false,
+  paused:false,
+  seconds:0,
+  timerId:null,
+  events:[],
+  score:0,
+  critical:0,
+  completed:new Set()
+};
+
+function initLogin(){
+  const saved = JSON.parse(localStorage.getItem("simcopilot_login") || "null");
+  if(saved){
+    $("loginName").value = saved.name || "";
+    $("loginPin").value = saved.pin || "";
+  }
+}
+$("loginBtn").onclick = () => {
+  const name = $("loginName").value.trim();
+  const pin = $("loginPin").value.trim();
+  if(!name || !/^\d{4,6}$/.test(pin)){
+    alert("Escribe el nombre del instructor y un PIN de 4 a 6 dígitos.");
+    return;
+  }
+  localStorage.setItem("simcopilot_login", JSON.stringify({name,pin}));
+  state.instructor = name;
+  $("welcomeText").textContent = "Instructor: " + name;
+  $("loginScreen").classList.add("hidden");
+  $("appScreen").classList.remove("hidden");
+  loadProgram();
+};
+
+$("logoutBtn").onclick = () => {
+  stopTimer();
+  $("appScreen").classList.add("hidden");
+  $("loginScreen").classList.remove("hidden");
+};
+
+$("program").onchange = loadProgram;
+$("scenario").onchange = loadScenario;
+
+function loadProgram(){
+  const program = $("program").value;
+  $("scenario").innerHTML = scenarios[program].map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  renderActions();
+  loadScenario();
+}
+
+function currentScenario(){
+  return scenarios[$("program").value].find(s => s.id === $("scenario").value);
+}
+
+function loadScenario(){
+  const s = currentScenario();
+  if(!s) return;
+  $("scenarioBox").innerHTML = `<strong>${s.patient}</strong><br>${s.summary}`;
+  $("patientLabel").textContent = s.patient;
+  setVitals(s.vitals);
+  $("patientState").textContent = "Comprometido";
+}
+
+function renderActions(){
+  $("actions").innerHTML = actionCatalog[$("program").value]
+    .map(([name,desc]) => `<button class="action" data-action="${name}">${name}<span>${desc}</span></button>`)
+    .join("");
+  document.querySelectorAll(".action").forEach(btn => btn.onclick = () => registerAction(btn.dataset.action));
+}
+
+function registerAction(action){
+  if(!state.running || state.paused){
+    alert("Inicia o reanuda el escenario antes de registrar intervenciones.");
+    return;
+  }
+  const s = currentScenario();
+  const expected = s.expected.includes(action);
+  const firstTime = !state.completed.has(action);
+  if(expected && firstTime){
+    state.score += 10;
+    state.completed.add(action);
+  }
+  state.events.push({time:formatTime(state.seconds),action,expected});
+  updateLog();
+
+  if(action.includes("Ventilar") || action.includes("ventilación")){
+    improveVitals(15,8,3);
+  } else if(action.includes("oxígeno")){
+    improveVitals(0,5,0);
+  } else if(action.includes("compresiones")){
+    improveVitals(12,3,0);
+  } else if(action.includes("adrenalina")){
+    improveVitals(25,2,0);
+  } else if(action.includes("Reevaluar")){
+    addSystemEvent("Reevaluación clínica registrada.");
+  }
+}
+
+function improveVitals(hrDelta, spoDelta, rrDelta){
+  const hr = parseInt($("hr").textContent) || 0;
+  const sp = parseInt($("spo2").textContent) || 0;
+  const rr = parseInt($("rr").textContent) || 0;
+  $("hr").textContent = Math.min(hr + hrDelta, 140);
+  $("spo2").textContent = Math.min(sp + spoDelta, 99);
+  $("rr").textContent = Math.min(rr + rrDelta, 30);
+  $("patientState").textContent = "En respuesta";
+}
+
+function setVitals(v){
+  $("hr").textContent = v.hr;
+  $("spo2").textContent = v.spo2;
+  $("bp").textContent = v.bp;
+  $("rr").textContent = v.rr;
+}
+
+function addSystemEvent(text){
+  state.events.push({time:formatTime(state.seconds),action:text,expected:true});
+  updateLog();
+}
+
+function updateLog(){
+  $("timeline").innerHTML = state.events.length
+    ? state.events.map(e => `<div class="log"><time>${e.time}</time><p>${e.action}</p></div>`).join("")
+    : `<div class="log"><p style="color:var(--muted)">Aún no hay acciones registradas.</p></div>`;
+  $("eventCount").textContent = `${state.events.length} eventos`;
+  $("score").textContent = state.score;
+  $("critical").textContent = state.critical;
+  $("actionCount").textContent = state.events.filter(e => !e.action.includes("Escenario")).length;
+}
+
+$("startBtn").onclick = () => {
+  if(state.running && !state.paused) return;
+  if(!state.running){
+    resetSessionData(false);
+    state.running = true;
+    addSystemEvent("Escenario iniciado.");
+  }
+  state.paused = false;
+  $("statusText").textContent = "EN CURSO";
+  $("statusText").className = "status running";
+  $("modeBadge").textContent = $("program").value;
+  startTimer();
+};
+
+$("pauseBtn").onclick = () => {
+  if(!state.running) return;
+  state.paused = !state.paused;
+  $("statusText").textContent = state.paused ? "PAUSADO" : "EN CURSO";
+  $("statusText").className = state.paused ? "status paused" : "status running";
+};
+
+$("finishBtn").onclick = finishScenario;
+
+function startTimer(){
+  stopTimer();
+  state.timerId = setInterval(() => {
+    if(state.running && !state.paused){
+      state.seconds++;
+      $("timer").textContent = formatTime(state.seconds);
+      animateWaves();
+    }
+  },1000);
+}
+
+function stopTimer(){
+  if(state.timerId) clearInterval(state.timerId);
+  state.timerId = null;
+}
+
+function finishScenario(){
+  if(!state.running){
+    alert("El escenario aún no ha iniciado.");
+    return;
+  }
+  state.running = false;
+  state.paused = false;
+  stopTimer();
+
+  const s = currentScenario();
+  const missing = s.expected.filter(x => !state.completed.has(x));
+  state.critical = missing.length;
+  $("critical").textContent = state.critical;
+
+  $("statusText").textContent = "FINALIZADO";
+  $("statusText").className = "status done";
+  $("patientState").textContent = state.critical <= 2 ? "Mejoría" : "Sin resolución";
+  addSystemEvent("Escenario finalizado.");
+
+  const percent = Math.round((state.completed.size / s.expected.length) * 100);
+  let result = "REQUIERE REMEDIACIÓN";
+  if(percent >= 80 && state.critical <= 1) result = "DESEMPEÑO SATISFACTORIO";
+  else if(percent >= 60) result = "DESEMPEÑO PARCIAL";
+
+  $("resultBanner").textContent = `${result} · ${percent}%`;
+  $("resultSummary").innerHTML = `
+    <li>Programa: ${$("program").value}</li>
+    <li>Caso: ${s.name}</li>
+    <li>Equipo: ${$("teamName").value}</li>
+    <li>Tiempo: ${formatTime(state.seconds)}</li>
+    <li>Intervenciones correctas: ${state.completed.size} de ${s.expected.length}</li>
+    <li>Acciones pendientes: ${missing.length ? missing.join(", ") : "Ninguna"}</li>
+  `;
+  $("resultModal").classList.add("visible");
+}
+
+$("closeModal").onclick = () => $("resultModal").classList.remove("visible");
+$("newScenario").onclick = () => {
+  $("resultModal").classList.remove("visible");
+  resetSessionData(true);
+};
+
+$("resetBtn").onclick = () => {
+  if(confirm("¿Deseas reiniciar por completo el escenario actual?")) resetSessionData(true);
+};
+
+function resetSessionData(resetVitals){
+  stopTimer();
+  state.running=false;state.paused=false;state.seconds=0;state.events=[];state.score=0;state.critical=0;state.completed=new Set();
+  $("timer").textContent="00:00";
+  $("statusText").textContent="LISTO";
+  $("statusText").className="status ready";
+  $("modeBadge").textContent="Sin iniciar";
+  $("wentWell").value="";$("improve").value="";$("takeaway").value="";
+  updateLog();
+  if(resetVitals) loadScenario();
+}
+
+$("saveBtn").onclick = () => {
+  const data = buildReportData();
+  localStorage.setItem("simcopilot_last_session", JSON.stringify(data));
+  alert("Sesión guardada localmente en este navegador.");
+};
+
+$("downloadReport").onclick = () => {
+  const d = buildReportData();
+  const text = [
+    "SIMCOPILOT EDUVESA - REPORTE DE SIMULACIÓN",
+    "",
+    `Instructor: ${d.instructor}`,
+    `Programa: ${d.program}`,
+    `Escenario: ${d.scenario}`,
+    `Equipo: ${d.team}`,
+    `Participantes: ${d.participants}`,
+    `Duración: ${d.duration}`,
+    `Puntuación: ${d.score}`,
+    `Acciones críticas pendientes: ${d.critical}`,
+    "",
+    "REGISTRO:",
+    ...d.events.map(e => `${e.time} - ${e.action}`),
+    "",
+    "DEBRIEFING:",
+    `Qué se hizo bien: ${d.wentWell}`,
+    `Qué puede mejorar: ${d.improve}`,
+    `Mensaje principal: ${d.takeaway}`,
+    "",
+    "Uso educativo. No sustituye manuales ni algoritmos oficiales."
+  ].join("\n");
+  const blob = new Blob([text],{type:"text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url;a.download=`reporte-simcopilot-${Date.now()}.txt`;a.click();
+  URL.revokeObjectURL(url);
+};
+
+function buildReportData(){
+  const s = currentScenario();
+  return {
+    instructor:state.instructor,program:$("program").value,scenario:s.name,
+    team:$("teamName").value,participants:$("learnerCount").value,
+    duration:formatTime(state.seconds),score:state.score,critical:state.critical,
+    events:state.events,wentWell:$("wentWell").value,improve:$("improve").value,
+    takeaway:$("takeaway").value,date:new Date().toISOString()
+  };
+}
+
+function formatTime(sec){
+  const m=String(Math.floor(sec/60)).padStart(2,"0");
+  const s=String(sec%60).padStart(2,"0");
+  return `${m}:${s}`;
+}
+
+function animateWaves(){
+  const t = Date.now()/200;
+  $("ecgPath").setAttribute("d",makeECG(t));
+  $("spoPath").setAttribute("d",makeWave(t,15,58));
+  $("capPath").setAttribute("d",makeCapno(t));
+}
+function makeECG(t){
+  let d="M 0 60";
+  for(let x=0;x<=1000;x+=10){
+    const p=(x+t*12)%140;
+    let y=60;
+    if(p>45&&p<52)y=54;if(p>=52&&p<58)y=82;if(p>=58&&p<64)y=15;
+    if(p>=64&&p<71)y=92;if(p>=71&&p<84)y=56;
+    d+=` L ${x} ${y}`;
+  }
+  return d;
+}
+function makeWave(t,a,b){
+  let d="M 0 60";
+  for(let x=0;x<=1000;x+=10){
+    const y=b+Math.sin((x+t*10)/35)*a;
+    d+=` L ${x} ${y}`;
+  }
+  return d;
+}
+function makeCapno(t){
+  let d="M 0 85";
+  for(let x=0;x<=1000;x+=10){
+    const p=(x+t*7)%180;
+    let y=85;
+    if(p>40&&p<55)y=35;
+    else if(p>=55&&p<125)y=30+Math.sin(p/12)*3;
+    else if(p>=125&&p<140)y=85;
+    d+=` L ${x} ${y}`;
+  }
+  return d;
+}
+
+initLogin();
+updateLog();
+animateWaves();
+setInterval(animateWaves,180);
+</script>
+</body>
+</html>
