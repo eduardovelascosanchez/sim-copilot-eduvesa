@@ -154,6 +154,7 @@
         <small id="welcomeText">Instructor</small>
       </div>
       <div class="top-actions">
+        <button id="instructorBtn" class="btn">Panel instructor</button>
         <button id="saveBtn" class="btn">Guardar sesión</button>
         <button id="logoutBtn" class="btn">Cerrar sesión</button>
         <button id="resetBtn" class="btn danger">Reiniciar</button>
@@ -255,6 +256,83 @@
     </main>
   </div>
 </section>
+
+
+<div id="instructorModal" class="modal">
+  <div class="modal-card">
+    <div class="section-head">
+      <h2>Panel oculto del instructor</h2>
+      <button id="closeInstructor" class="btn">Cerrar</button>
+    </div>
+
+    <div id="instructorUnlock">
+      <p class="subtitle">Introduce el PIN local del instructor para desbloquear los controles avanzados.</p>
+      <label for="instructorPinCheck">PIN</label>
+      <input id="instructorPinCheck" type="password" inputmode="numeric" maxlength="6">
+      <button id="unlockInstructor" class="btn primary full">Desbloquear panel</button>
+    </div>
+
+    <div id="instructorControls" class="hidden">
+      <div class="debrief">
+        <div>
+          <h3>Signos vitales manuales</h3>
+          <label for="instHr">Frecuencia cardiaca</label>
+          <input id="instHr" type="number" min="0" max="300">
+
+          <label for="instSpo2">SpO₂</label>
+          <input id="instSpo2" type="number" min="0" max="100">
+
+          <label for="instBp">Presión arterial</label>
+          <input id="instBp" placeholder="Ej. 90/55 o —">
+
+          <label for="instRr">Frecuencia respiratoria</label>
+          <input id="instRr" type="number" min="0" max="100">
+
+          <button id="applyVitalsBtn" class="btn primary full">Aplicar signos vitales</button>
+        </div>
+
+        <div>
+          <h3>Control del escenario</h3>
+          <label for="rhythmSelect">Ritmo</label>
+          <select id="rhythmSelect">
+            <option value="sinus">Ritmo sinusal</option>
+            <option value="brady">Bradicardia</option>
+            <option value="svt">Taquicardia supraventricular</option>
+            <option value="vt">Taquicardia ventricular</option>
+            <option value="vf">Fibrilación ventricular</option>
+            <option value="pea">Actividad eléctrica sin pulso</option>
+            <option value="asystole">Asistolia</option>
+          </select>
+          <button id="activateRhythmBtn" class="btn full">Activar ritmo</button>
+
+          <div class="button-row" style="margin-top:12px">
+            <button id="startDeteriorationBtn" class="btn warning">Iniciar deterioro</button>
+            <button id="stopDeteriorationBtn" class="btn">Detener deterioro</button>
+          </div>
+
+          <label for="criticalErrorText">Error crítico</label>
+          <input id="criticalErrorText" placeholder="Ej. Retraso en iniciar ventilación">
+          <button id="addCriticalErrorBtn" class="btn danger full">Registrar error crítico</button>
+
+          <label for="correctInterventionSelect">Intervención correcta</label>
+          <select id="correctInterventionSelect"></select>
+          <button id="markCorrectBtn" class="btn success full">Marcar como correcta</button>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <h3>Decisión final del instructor</h3>
+        <div class="button-row">
+          <button class="btn success decision-btn" data-decision="APRUEBA">Aprueba</button>
+          <button class="btn warning decision-btn" data-decision="REMEDIACIÓN">Remediación</button>
+          <button class="btn danger decision-btn" data-decision="NO APRUEBA">No aprueba</button>
+          <button id="forceFinishBtn" class="btn">Terminar escenario</button>
+        </div>
+        <p class="note">La decisión del instructor prevalece sobre la puntuación automática.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="resultModal" class="modal">
   <div class="modal-card">
@@ -403,7 +481,10 @@ let state = {
   events:[],
   score:0,
   critical:0,
-  completed:new Set()
+  completed:new Set(),
+  deteriorationId:null,
+  rhythm:"sinus",
+  instructorDecision:""
 };
 
 function initLogin(){
@@ -623,6 +704,7 @@ function finishScenario(){
   let result = "REQUIERE REMEDIACIÓN";
   if(percent >= 80 && state.critical <= 1) result = "DESEMPEÑO SATISFACTORIO";
   else if(percent >= 60) result = "DESEMPEÑO PARCIAL";
+  if(state.instructorDecision) result = state.instructorDecision;
 
   $("resultBanner").textContent = `${result} · ${percent}%`;
   $("resultSummary").innerHTML = `
@@ -632,6 +714,7 @@ function finishScenario(){
     <li>Tiempo: ${formatTime(state.seconds)}</li>
     <li>Intervenciones correctas: ${state.completed.size} de ${s.expected.length}</li>
     <li>Acciones pendientes: ${missing.length ? missing.join(", ") : "Ninguna"}</li>
+    <li>Decisión del instructor: ${state.instructorDecision || "No registrada"}</li>
   `;
   $("resultModal").classList.add("visible");
 }
@@ -648,7 +731,7 @@ $("resetBtn").onclick = () => {
 
 function resetSessionData(resetVitals){
   stopTimer();
-  state.running=false;state.paused=false;state.seconds=0;state.events=[];state.score=0;state.critical=0;state.completed=new Set();
+  state.running=false;state.paused=false;state.seconds=0;state.events=[];state.score=0;state.critical=0;state.completed=new Set();state.instructorDecision="";state.rhythm="sinus";stopDeterioration();
   $("timer").textContent="00:00";
   $("statusText").textContent="LISTO";
   $("statusText").className="status ready";
@@ -677,6 +760,8 @@ $("downloadReport").onclick = () => {
     `Duración: ${d.duration}`,
     `Puntuación: ${d.score}`,
     `Acciones críticas pendientes: ${d.critical}`,
+    `Decisión del instructor: ${d.instructorDecision}`,
+    `Ritmo final: ${d.rhythm}`,
     "",
     "REGISTRO:",
     ...d.events.map(e => `${e.time} - ${e.action}`),
@@ -702,7 +787,10 @@ function buildReportData(){
     team:$("teamName").value,participants:$("learnerCount").value,
     duration:formatTime(state.seconds),score:state.score,critical:state.critical,
     events:state.events,wentWell:$("wentWell").value,improve:$("improve").value,
-    takeaway:$("takeaway").value,date:new Date().toISOString()
+    takeaway:$("takeaway").value,
+    instructorDecision:state.instructorDecision || "No registrada",
+    rhythm:state.rhythm,
+    date:new Date().toISOString()
   };
 }
 
@@ -749,6 +837,128 @@ function makeCapno(t){
   }
   return d;
 }
+
+
+$("instructorBtn").onclick = () => {
+  $("instructorModal").classList.add("visible");
+  $("instructorUnlock").classList.remove("hidden");
+  $("instructorControls").classList.add("hidden");
+  $("instructorPinCheck").value = "";
+};
+
+$("closeInstructor").onclick = () => $("instructorModal").classList.remove("visible");
+
+$("unlockInstructor").onclick = () => {
+  const saved = JSON.parse(localStorage.getItem("simcopilot_login") || "null");
+  if(!saved || $("instructorPinCheck").value !== saved.pin){
+    alert("PIN incorrecto.");
+    return;
+  }
+  $("instructorUnlock").classList.add("hidden");
+  $("instructorControls").classList.remove("hidden");
+  syncInstructorVitals();
+  populateCorrectInterventions();
+};
+
+function syncInstructorVitals(){
+  $("instHr").value = parseInt($("hr").textContent) || 0;
+  $("instSpo2").value = parseInt($("spo2").textContent) || 0;
+  $("instBp").value = $("bp").textContent;
+  $("instRr").value = parseInt($("rr").textContent) || 0;
+}
+
+$("applyVitalsBtn").onclick = () => {
+  $("hr").textContent = Math.max(0, Math.min(300, Number($("instHr").value) || 0));
+  $("spo2").textContent = Math.max(0, Math.min(100, Number($("instSpo2").value) || 0));
+  $("bp").textContent = $("instBp").value.trim() || "—";
+  $("rr").textContent = Math.max(0, Math.min(100, Number($("instRr").value) || 0));
+  $("patientState").textContent = "Modificado por instructor";
+  addSystemEvent("El instructor modificó los signos vitales.");
+};
+
+function populateCorrectInterventions(){
+  const s = currentScenario();
+  $("correctInterventionSelect").innerHTML = s.expected
+    .map(item => `<option value="${item}">${item}</option>`).join("");
+}
+
+$("markCorrectBtn").onclick = () => {
+  const action = $("correctInterventionSelect").value;
+  if(!action) return;
+  if(!state.completed.has(action)){
+    state.completed.add(action);
+    state.score += 10;
+    state.events.push({time:formatTime(state.seconds),action:"Marcada correcta por instructor: " + action,expected:true});
+    updateLog();
+  }
+};
+
+$("addCriticalErrorBtn").onclick = () => {
+  const txt = $("criticalErrorText").value.trim();
+  if(!txt) return;
+  state.critical += 1;
+  state.events.push({time:formatTime(state.seconds),action:"ERROR CRÍTICO: " + txt,expected:false});
+  $("criticalErrorText").value = "";
+  updateLog();
+};
+
+$("startDeteriorationBtn").onclick = () => {
+  if(state.deteriorationId) return;
+  $("patientState").textContent = "Deteriorando";
+  addSystemEvent("Deterioro clínico iniciado por el instructor.");
+  state.deteriorationId = setInterval(() => {
+    const hr = parseInt($("hr").textContent) || 0;
+    const sp = parseInt($("spo2").textContent) || 0;
+    const rr = parseInt($("rr").textContent) || 0;
+    $("hr").textContent = state.rhythm === "svt" || state.rhythm === "vt" ? Math.min(260, hr + 8) : Math.max(0, hr - 6);
+    $("spo2").textContent = Math.max(0, sp - 3);
+    $("rr").textContent = Math.max(0, rr - 2);
+  }, 3000);
+};
+
+$("stopDeteriorationBtn").onclick = stopDeterioration;
+
+function stopDeterioration(){
+  if(state.deteriorationId) clearInterval(state.deteriorationId);
+  state.deteriorationId = null;
+  $("patientState").textContent = "Deterioro detenido";
+  if(state.running) addSystemEvent("Deterioro clínico detenido por el instructor.");
+}
+
+$("activateRhythmBtn").onclick = () => {
+  const rhythm = $("rhythmSelect").value;
+  state.rhythm = rhythm;
+  const map = {
+    sinus:{label:"Ritmo sinusal",hr:110,spo:96,rr:24},
+    brady:{label:"Bradicardia",hr:48,spo:82,rr:10},
+    svt:{label:"Taquicardia supraventricular",hr:230,spo:92,rr:34},
+    vt:{label:"Taquicardia ventricular",hr:190,spo:88,rr:12},
+    vf:{label:"Fibrilación ventricular",hr:0,spo:0,rr:0},
+    pea:{label:"Actividad eléctrica sin pulso",hr:70,spo:0,rr:0},
+    asystole:{label:"Asistolia",hr:0,spo:0,rr:0}
+  };
+  const r = map[rhythm];
+  $("hr").textContent = r.hr;
+  $("spo2").textContent = r.spo;
+  $("rr").textContent = r.rr;
+  if(["vf","pea","asystole"].includes(rhythm)) $("bp").textContent = "—";
+  $("patientState").textContent = r.label;
+  addSystemEvent("Ritmo activado por instructor: " + r.label + ".");
+};
+
+document.querySelectorAll(".decision-btn").forEach(btn => {
+  btn.onclick = () => {
+    state.instructorDecision = btn.dataset.decision;
+    addSystemEvent("Decisión del instructor: " + state.instructorDecision + ".");
+    alert("Decisión registrada: " + state.instructorDecision);
+  };
+});
+
+$("forceFinishBtn").onclick = () => {
+  $("instructorModal").classList.remove("visible");
+  if(state.running) finishScenario();
+  else alert("El escenario no está activo.");
+};
 
 initLogin();
 updateLog();
